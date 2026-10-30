@@ -62,7 +62,7 @@ def reverse_delta(points, route, x, y):
 
 
 def two_opt(points, route, neighbors):
-    """Улучшение маршрута методом 2-opt."""
+    """улучшение маршрута методом 2-opt."""
     n = len(route)
     improved = True
     while improved:
@@ -85,4 +85,57 @@ def two_opt(points, route, neighbors):
                         pos[route[k]] = k
                     improved = True
                     break
+    return route
+
+
+def or_opt(points, route, neighbors, max_len=3):
+    """улучшение маршрута переносом кусков из 1..max_len точек."""
+    n = len(route)
+    improved = True
+    while improved:
+        improved = False
+        for seg_len in range(1, max_len + 1):
+            pos = [0] * n
+            for k, city in enumerate(route):
+                pos[city] = k
+            i = 1
+            while i + seg_len <= n:
+                p = route[i - 1]
+                first = route[i]
+                last = route[i + seg_len - 1]
+                if i + seg_len < n:
+                    q = route[i + seg_len]
+                    gain_remove = (distance(points[p], points[first])
+                                   + distance(points[last], points[q])
+                                   - distance(points[p], points[q]))
+                else:
+                    gain_remove = distance(points[p], points[first])
+                best = None
+                for c in neighbors[first] + neighbors[last]:
+                    j = pos[c]
+                    for k in (j - 1, j):
+                        if k < 0 or i - 1 <= k <= i + seg_len - 1:
+                            continue
+                        u = route[k]
+                        v = route[k + 1] if k + 1 < n else None
+                        for a, b in ((first, last), (last, first)):
+                            add = distance(points[u], points[a])
+                            if v is not None:
+                                add += (distance(points[b], points[v])
+                                        - distance(points[u], points[v]))
+                            gain = gain_remove - add
+                            if gain > 1e-9 and (best is None or gain > best[0]):
+                                best = (gain, k, a == last)
+                if best is not None:
+                    _, k, rev = best
+                    seg = route[i:i + seg_len]
+                    if rev:
+                        seg.reverse()
+                    del route[i:i + seg_len]
+                    ins = k + 1 if k < i else k + 1 - seg_len
+                    route[ins:ins] = seg
+                    for t, city in enumerate(route):
+                        pos[city] = t
+                    improved = True
+                i += 1
     return route
