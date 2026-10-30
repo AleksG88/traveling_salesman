@@ -40,7 +40,7 @@
 ## Запуск
 
 ```
-pip install pandas numpy
+pip install -r requirements.txt
 python main.py
 ```
 

@@ -2,11 +2,15 @@
 
 import pandas as pd
 from tsp import nearest_neighbor, route_length, neighbor_lists, two_opt, or_opt, distance
+from pathlib import Path
+
+
+HERE = Path(__file__).parent
 
 
 def main():
     """Строит маршрут и сохраняет его в solution.csv."""
-    data = pd.read_csv("data.csv")
+    data = pd.read_csv(HERE / "data.csv")
     points = list(zip(data["latitude_dd"], data["longitude_dd"]))
     start = 3753
 
@@ -27,7 +31,7 @@ def main():
             break
         best_len = new_len
 
-    with open("solution.csv", "w", encoding="utf-8") as f:
+    with open(HERE / "solution.csv", "w", encoding="utf-8") as f:
         for i in range(len(route) - 1):
             d = distance(points[route[i]], points[route[i + 1]])
             f.write(f"{i};{d}\n")
