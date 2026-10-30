@@ -1,7 +1,10 @@
 import pandas as pd
-from tsp import distance
+from tsp import nearest_neighbor, route_length
+
 
 data = pd.read_csv("data.csv")
-print(data.head())
-print("Всего пунктов:", len(data))
-print(distance((5601, 9285), (5661, 9621)))
+points = list(zip(data["latitude_dd"], data["longitude_dd"]))
+start = 3753
+
+route = nearest_neighbor(points, start)
+print("Жадный маршрут, скор" , route_length(points, route) / 100)
