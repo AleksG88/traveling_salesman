@@ -88,54 +88,84 @@ def two_opt(points, route, neighbors):
     return route
 
 
+def positions(route):
+    """Справочник: на каком месте маршрута стоит каждая точка."""
+    pos = [0] * len(route)
+    for place, city in enumerate(route):
+        pos[city] = place
+    return pos
+
+
+def segment_remove_gain(points, route, i, seg_len):
+    """Сколько сэкономим, если вырезать кусок route[i..i+seg_len-1]."""
+    p, first = route[i - 1], route[i]
+    last = route[i + seg_len - 1]
+    gain = distance(points[p], points[first])
+    if i + seg_len < len(route):
+        q = route[i + seg_len]
+        gain += distance(points[last], points[q]) - distance(points[p], points[q])
+    return gain
+
+
+def insertion_slots(route, pos, neighbors, i, seg_len):
+    """Щели рядом с соседями куска, куда его можно вставить."""
+    first, last = route[i], route[i + seg_len - 1]
+    slots = []
+    for c in neighbors[first] + neighbors[last]:
+        for k in (pos[c] - 1, pos[c]):
+            if k >= 0 and not i - 1 <= k <= i + seg_len - 1:
+                slots.append(k)
+    return slots
+
+
+def insertion_cost(points, u, v, a, b):
+    """Сколько добавится, если вставить кусок a..b между u и v."""
+    cost = distance(points[u], points[a])
+    if v is not None:
+        cost += distance(points[b], points[v]) - distance(points[u], points[v])
+    return cost
+
+
+def best_insertion(points, route, slots, segment, gain_remove):
+    """Лучшая щель для куска: (номер щели, переворачивать ли) или (-1, False)."""
+    best_k, best_rev, best_gain = -1, False, 1e-9
+    for k in slots:
+        u = route[k]
+        v = route[k + 1] if k + 1 < len(route) else None
+        for a, b in (segment, segment[::-1]):
+            gain = gain_remove - insertion_cost(points, u, v, a, b)
+            if gain > best_gain:
+                best_k, best_rev, best_gain = k, a == segment[1], gain
+    return best_k, best_rev
+
+
+def move_segment(route, i, seg_len, k, rev):
+    """Вырезать кусок route[i..i+seg_len-1] и вставить в щель k."""
+    seg = route[i:i + seg_len]
+    if rev:
+        seg.reverse()
+    del route[i:i + seg_len]
+    ins = k + 1 if k < i else k + 1 - seg_len
+    route[ins:ins] = seg
+
+
 def or_opt(points, route, neighbors, max_len=3):
-    """улучшение маршрута переносом кусков из 1..max_len точек."""
+    """Улучшение маршрута переносом кусков из 1..max_len точек."""
     n = len(route)
     improved = True
     while improved:
         improved = False
         for seg_len in range(1, max_len + 1):
-            pos = [0] * n
-            for k, city in enumerate(route):
-                pos[city] = k
+            pos = positions(route)
             i = 1
             while i + seg_len <= n:
-                p = route[i - 1]
-                first = route[i]
-                last = route[i + seg_len - 1]
-                if i + seg_len < n:
-                    q = route[i + seg_len]
-                    gain_remove = (distance(points[p], points[first])
-                                   + distance(points[last], points[q])
-                                   - distance(points[p], points[q]))
-                else:
-                    gain_remove = distance(points[p], points[first])
-                best = None
-                for c in neighbors[first] + neighbors[last]:
-                    j = pos[c]
-                    for k in (j - 1, j):
-                        if k < 0 or i - 1 <= k <= i + seg_len - 1:
-                            continue
-                        u = route[k]
-                        v = route[k + 1] if k + 1 < n else None
-                        for a, b in ((first, last), (last, first)):
-                            add = distance(points[u], points[a])
-                            if v is not None:
-                                add += (distance(points[b], points[v])
-                                        - distance(points[u], points[v]))
-                            gain = gain_remove - add
-                            if gain > 1e-9 and (best is None or gain > best[0]):
-                                best = (gain, k, a == last)
-                if best is not None:
-                    _, k, rev = best
-                    seg = route[i:i + seg_len]
-                    if rev:
-                        seg.reverse()
-                    del route[i:i + seg_len]
-                    ins = k + 1 if k < i else k + 1 - seg_len
-                    route[ins:ins] = seg
-                    for t, city in enumerate(route):
-                        pos[city] = t
+                gain_remove = segment_remove_gain(points, route, i, seg_len)
+                slots = insertion_slots(route, pos, neighbors, i, seg_len)
+                segment = (route[i], route[i + seg_len - 1])
+                k, rev = best_insertion(points, route, slots, segment, gain_remove)
+                if k >= 0:
+                    move_segment(route, i, seg_len, k, rev)
+                    pos = positions(route)
                     improved = True
                 i += 1
     return route
