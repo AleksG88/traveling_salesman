@@ -1,8 +1,11 @@
 """ПР 5.2: решение задачи коммивояжёра для населённых пунктов СФО."""
 
-import pandas as pd
-from tsp import nearest_neighbor, route_length, neighbor_lists, two_opt, or_opt, distance
 from pathlib import Path
+
+import pandas as pd
+
+from tsp import nearest_neighbor, route_length, neighbor_lists, two_opt, or_opt, distance
+
 
 
 HERE = Path(__file__).parent
