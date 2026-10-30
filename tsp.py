@@ -48,3 +48,41 @@ def neighbor_lists(points, k):
         nearest = np.argsort(dists)[1:k + 1]
         result.append(nearest.tolist())
     return result
+
+
+def reverse_delta(points, route, x, y):
+    """на сколько изменится длина, если перевернуть кусок route[x+1..y]"""
+    a, b = route[x], route[x + 1]
+    c = route[y]
+    delta = distance(points[a], points[c]) - distance(points[a], points[b])
+    if y + 1 < len(route):
+        e = route[y + 1]
+        delta += distance(points[b], points[e]) - distance(points[c], points[e])
+    return delta
+
+
+def two_opt(points, route, neighbors):
+    """Улучшение маршрута методом 2-opt."""
+    n = len(route)
+    improved = True
+    while improved:
+        improved = False
+        pos = [0] * n
+        for k, city in enumerate(route):
+            pos[city] = k
+        for i in range(n - 1):
+            a, b = route[i], route[i + 1]
+            for c in neighbors[a]:
+                if distance(points[a], points[c]) >= distance(points[a], points[b]):
+                    break
+                j = pos[c]
+                x, y = min(i, j), max(i, j)
+                if y - x < 2:
+                    continue
+                if reverse_delta(points, route, x, y) < -1e-9:
+                    route[x + 1:y + 1] = route[x + 1:y + 1][::-1]
+                    for k in range(x + 1, y + 1):
+                        pos[route[k]] = k
+                    improved = True
+                    break
+    return route
