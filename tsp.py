@@ -1,6 +1,7 @@
 """Решение задачи комивояджера"""
 
 import math
+import numpy as np
 
 def distance(p1, p2):
     """Квклидово расстояние мужду точками"""
@@ -35,3 +36,15 @@ def route_length(points, route):
     for i in range(len(route) - 1):
         total += distance(points[route[i]], points[route[i + 1]])
     return total
+
+
+def neighbor_lists(points, k):
+    """дляя каждой точки список k ближайших к ней точек"""
+    xs = np.array([p[0] for p in points])
+    ys = np.array([p[1] for p in points])
+    result = []
+    for x, y in points:
+        dists = np.hypot(xs - x, ys - y)
+        nearest = np.argsort(dists)[1:k + 1]
+        result.append(nearest.tolist())
+    return result
